@@ -1,11 +1,11 @@
 require('dotenv').load();
 const mongoose = require('mongoose');
+const cors = require('cors');
 const express = require('express');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 const Driver = require('./driver');
 const Order = require('./order');
-const UserInfo = require('./userInfo');
 
 const API_PORT = 3331;
 const app = express();
@@ -27,40 +27,8 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(logger('dev'));
-
-/*
- *
- * DB ACCESS
- *
- * user info
- *
- */
-
-router.get("/addUserInfo", (req, res) => {
-  let userInfo = new UserInfo();
-  userInfo.name = 'bo';
-  userInfo.address = 'asdf';
-  userInfo.cellNumber = 'asdfiojsf';
-  userInfo.save(err => {
-    if (err) return res.json({ success: false, error: err });
-    return res.json({ success: true });
-  });
-});
-
-router.get('/getUserInfo', (req, res) => {
-  UserInfo.find((err, data) => {
-    if (err) return res.json({ success: false, error: err });
-    return res.json({ success: true, data: data });
-  });
-});
-
-router.post("/updateUserInfo", (req, res) => {
-  const { update } = req.body;
-  UserInfo.findOneAndUpdate({}, update, err => {
-    if (err) return res.json({ success: false, error: err });
-    return res.json({ success: true });
-  });
-});
+app.use(cors());
+app.options('*', cors());
 
 /*
  *
@@ -156,6 +124,35 @@ router.post("/updateOrder", (req, res) => {
     if (err) return res.json({ success: false, error: err });
     return res.json({ success: true });
   });
+});
+
+
+
+/*
+ *
+ *
+ * event handling
+ *
+ */
+
+router.post("/events", (req, res) => {
+  const { event } = req.body;
+
+  if (event.domain === 'order') {
+    console.log('order status', event.attrs.order.state)
+    Order.findOneAndUpdate({ id: event.attrs.order.id }, event.attrs.order, { upsert: true }, err => {
+      if (err) return res.json({ success: false, error: err });
+      return res.json({ success: true });
+    })
+  }
+
+  if (event.domain === 'offer') {
+    // logic goes here
+  }
+
+  if (event.domain === 'delivery') {
+    // logic goes here
+  }
 });
 
 app.use("/api", router);

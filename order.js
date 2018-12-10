@@ -10,6 +10,8 @@ const OrderSchema = new Schema(
     shopId: String,
     shopName: String,
     shopUrl: String,
+    userInfo: Object,
+    userEventsUrl: String,
   },
   { timestamps: true }
 );
