@@ -3,11 +3,11 @@ const mongoose = require('mongoose');
 const express = require('express');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
-const Shop = require('./shop');
+const Driver = require('./driver');
 const Order = require('./order');
-const UserInfo = require('./userInfo')
+const UserInfo = require('./userInfo');
 
-const API_PORT = 3001;
+const API_PORT = 3331;
 const app = express();
 const router = express.Router();
 
@@ -66,39 +66,39 @@ router.post("/updateUserInfo", (req, res) => {
  *
  * DB ACCESS
  *
- * shops
+ * drivers
  *
  */
 
-router.get('/getShops', (req, res) => {
-  Shop.find((err, data) => {
+router.get('/getDrivers', (req, res) => {
+  Driver.find((err, data) => {
     if (err) return res.json({ success: false, error: err });
     return res.json({ success: true, data: data });
   });
 });
 
-router.delete("/deleteShop", (req, res) => {
+router.delete("/deleteDriver", (req, res) => {
   const { id } = req.body;
-  Shop.findOneAndDelete(id, err => {
+  Driver.findOneAndDelete(id, err => {
     if (err) return res.send(err);
     return res.json({ success: true });
   });
 });
 
-router.post("/addShop", (req, res) => {
-  let shop = new Shop();
+router.post("/addDriver", (req, res) => {
+  let driver = new Driver();
 
-  const { name, url } = req.body;
+  const { name, cellNumber } = req.body;
 
-  if (!name || !url) {
+  if (!name || !cellNumber) {
     return res.json({
       success: false,
       error: "INVALID INPUTS"
     });
   }
-  shop.name = name;
-  shop.url = url;
-  shop.save(err => {
+  driver.name = name;
+  driver.cellNumber = cellNumber;
+  driver.save(err => {
     if (err) return res.json({ success: false, error: err });
     return res.json({ success: true });
   });
