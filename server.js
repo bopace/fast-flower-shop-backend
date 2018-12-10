@@ -139,8 +139,8 @@ router.post("/events", (req, res) => {
   const { event } = req.body;
 
   if (event.domain === 'order') {
-    console.log('order status', event.attrs.order.state)
-    Order.findOneAndUpdate({ id: event.attrs.order.id }, event.attrs.order, { upsert: true }, err => {
+    delete event.attrs.order._id
+    Order.findOneAndUpdate({ id: event.attrs.order.id }, { $set: event.attrs.order }, { upsert: true, new: true }, (err, doc) => {
       if (err) return res.json({ success: false, error: err });
       return res.json({ success: true });
     })
