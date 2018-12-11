@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const logger = require('morgan');
 const Driver = require('./driver');
 const Order = require('./order');
+const Offer = require('./offer');
 
 const API_PORT = 3331;
 const app = express();
@@ -130,6 +131,24 @@ router.post("/updateOrder", (req, res) => {
 
 /*
  *
+ * DB ACCESS
+ *
+ * offers
+ *
+ */
+
+router.get('/getOffers/:id', (req, res) => {
+  const orderId = req.params.id
+  Offer.find({ orderId: orderId }, (err, data) => {
+    if (err) return res.json({ success: false, error: err });
+    return res.json({ success: true, data: data });
+  });
+});
+
+
+
+/*
+ *
  *
  * event handling
  *
@@ -147,7 +166,11 @@ router.post("/events", (req, res) => {
   }
 
   if (event.domain === 'offer') {
-    // logic goes here
+    delete event.attrs.offer._id
+    Offer.findOneAndUpdate({ id: event.attrs.offer.id }, { $set: event.attrs.offer }, { upsert: true, new: true }, (err, doc) => {
+      if (err) return res.json({ success: false, error: err });
+      return res.json({ success: true });
+    })
   }
 
   if (event.domain === 'delivery') {
