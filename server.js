@@ -4,6 +4,7 @@ const cors = require('cors');
 const express = require('express');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
+const twilio = require('twilio');
 const Driver = require('./driver');
 const Order = require('./order');
 const Offer = require('./offer');
@@ -11,6 +12,10 @@ const Offer = require('./offer');
 const API_PORT = 3331;
 const app = express();
 const router = express.Router();
+
+const accountSid = process.env.twilioAccountSid;
+const authToken = process.env.twilioAuthToken;
+const twilioClient = new twilio(accountSid, authToken);
 
 const dbRoute = process.env.mongoUri;
 
@@ -166,6 +171,15 @@ router.post("/events", (req, res) => {
   }
 
   if (event.domain === 'offer') {
+    // offer placed
+    // send text to driver
+
+    // offer revoked
+    // send text to driver
+
+    // offer confirmed
+    // send text to driver
+
     delete event.attrs.offer._id
     Offer.findOneAndUpdate({ id: event.attrs.offer.id }, { $set: event.attrs.offer }, { upsert: true, new: true }, (err, doc) => {
       if (err) return res.json({ success: false, error: err });
@@ -175,6 +189,15 @@ router.post("/events", (req, res) => {
 
   if (event.domain === 'delivery') {
     // logic goes here
+
+    // delivery prepared
+    // send a text to driver
+
+    // delivery picked up
+    // send a text to customer
+
+    // delivery 5 minutes away
+    // send a text to customer
   }
 });
 
