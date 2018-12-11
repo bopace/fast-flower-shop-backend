@@ -217,24 +217,65 @@ router.post("/events", (req, res) => {
   }
 
   if (event.domain === 'delivery') {
-    // logic goes here
+    delete event.attrs.delivery._id
+    Offer.findOneAndUpdate({ id: event.attrs.delivery.id }, { $set: event.attrs.delivery }, { upsert: true, new: true }, (err, doc) => {
+      if (err) return res.json({ success: false, error: err });
 
-    // delivery prepared
-    // send a text to driver
-    // twilioClient.messages
-    //   .create({
-    //     body: `Please head over to ${event.attrs.offer.shopName} to pick up the order.`,
-    //     from: twilioNumber,
-    //     to: event.attrs.offer.driverCellNumber
-    //   })
-    //   .done();
-    // delete all offers for the order
+      if (event.attrs.delivery.state === 'DELIVERY_PREPARED') {
+        twilioClient.messages
+          .create({
+            body: `The order is ready for pick up! Please head over to ${event.attrs.offer.shopName}.`,
+            from: twilioNumber,
+            to: event.attrs.delivery.driverCellNumber
+          })
+          .done();
+        return res.json({ success: true });
+      }
 
-    // delivery picked up
-    // send a text to customer
+      if (event.attrs.delivery.state === 'DELIVERY_PICKED_UP') {
+        twilioClient.messages
+          .create({
+            body: `Your flower delivery is on its way! It should arrive in ${event.attrs.delivery.estimatedTime}`,
+            from: twilioNumber,
+            to: event.attrs.delivery.customerCellNumber
+          })
+          .done();
+        return res.json({ success: true });
+      }
 
-    // delivery 5 minutes away
-    // send a text to customer
+      if (event.attrs.delivery.state === 'DELIVERY_FIVE_MINUTES_AWAY') {
+        twilioClient.messages
+          .create({
+            body: 'Your flower delivery is five minutes away!',
+            from: twilioNumber,
+            to: event.attrs.delivery.customerCellNumber
+          })
+          .done();
+        return res.json({ success: true });
+      }
+
+      if (event.attrs.delivery.state === 'DELIVERY_ARRIVED') {
+        twilioClient.messages
+          .create({
+            body: 'The delivery has arrived! Enjoy your flowers!',
+            from: twilioNumber,
+            to: event.attrs.delivery.customerCellNumber
+          })
+          .done();
+        return res.json({ success: true });
+      }
+
+      if (event.attrs.delivery.state === 'DELIVERY_COMPLETED') {
+        twilioClient.messages
+          .create({
+            body: 'Congratulations on the successful delivery!',
+            from: twilioNumber,
+            to: event.attrs.delivery.driverCellNumber
+          })
+          .done();
+        return res.json({ success: true });
+      }
+    })
   }
 });
 
