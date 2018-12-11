@@ -16,6 +16,7 @@ const router = express.Router();
 
 const accountSid = process.env.twilioAccountSid;
 const authToken = process.env.twilioAuthToken;
+const twilioNumber = process.env.twilioNumber;
 const twilioClient = new twilio(accountSid, authToken);
 
 const dbRoute = process.env.mongoUri;
@@ -184,7 +185,39 @@ router.post("/events", (req, res) => {
     delete event.attrs.offer._id
     Offer.findOneAndUpdate({ id: event.attrs.offer.id }, { $set: event.attrs.offer }, { upsert: true, new: true }, (err, doc) => {
       if (err) return res.json({ success: false, error: err });
-      return res.json({ success: true });
+
+      if (event.attrs.offer.state === 'OFFER_PLACED') {
+        twilioClient.messages
+          .create({
+            body: `A new delivery job is available from ${event.attrs.offer.shopName}! Text 'accept' or 'reject' to respond to the offer.`,
+            from: twilioNumber,
+            to: event.attrs.offer.driverCellNumber
+          })
+          .done();
+        return res.json({ success: true });
+      }
+
+      if (event.attrs.offer.state === 'OFFER_REVOKED') {
+        twilioClient.messages
+          .create({
+            body: 'Sorry, that offer is no longer available.',
+            from: twilioNumber,
+            to: event.attrs.offer.driverCellNumber
+          })
+          .done();
+        return res.json({ success: true });
+      }
+
+      if (event.attrs.offer.state === 'OFFER_CONFIRMED') {
+        twilioClient.messages
+          .create({
+            body: 'Congrats, you have been chosen for the job! We\'ll let you know when the order is ready for pickup.',
+            from: twilioNumber,
+            to: event.attrs.offer.driverCellNumber
+          })
+          .done();
+        return res.json({ success: true });
+      }
     })
   }
 
@@ -193,6 +226,14 @@ router.post("/events", (req, res) => {
 
     // delivery prepared
     // send a text to driver
+    // twilioClient.messages
+    //   .create({
+    //     body: `Please head over to ${event.attrs.offer.shopName} to pick up the order.`,
+    //     from: twilioNumber,
+    //     to: event.attrs.offer.driverCellNumber
+    //   })
+    //   .done();
+    // delete all offers for the order
 
     // delivery picked up
     // send a text to customer
