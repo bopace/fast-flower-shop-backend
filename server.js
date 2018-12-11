@@ -9,6 +9,10 @@ const MessagingResponse = require('twilio').twiml.MessagingResponse;
 const Driver = require('./driver');
 const Order = require('./order');
 const Offer = require('./offer');
+const googleMapsClient = require('@google/maps').createClient({
+  key: process.env.googleMapsApiKey,
+  Promise: Promise
+});
 
 const API_PORT = 3331;
 const app = express();
@@ -173,15 +177,6 @@ router.post("/events", (req, res) => {
   }
 
   if (event.domain === 'offer') {
-    // offer placed
-    // send text to driver
-
-    // offer revoked
-    // send text to driver
-
-    // offer confirmed
-    // send text to driver
-
     delete event.attrs.offer._id
     Offer.findOneAndUpdate({ id: event.attrs.offer.id }, { $set: event.attrs.offer }, { upsert: true, new: true }, (err, doc) => {
       if (err) return res.json({ success: false, error: err });
@@ -275,8 +270,14 @@ router.post("/sms", (req, res) => {
       res.end(twiml.toString());
     })
   }
-
 })
+
+getDeliveryTimeEstimate = (shopAddress, customerAddress) => {
+  googleMapsClient.distanceMatrix({}).asPromise()
+    .then(response => {
+      console.log('response', response.json.results)
+    })
+}
 
 
 app.use("/api", router);
