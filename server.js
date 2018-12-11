@@ -5,6 +5,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
 const twilio = require('twilio');
+const MessagingResponse = require('twilio').twiml.MessagingResponse;
 const Driver = require('./driver');
 const Order = require('./order');
 const Offer = require('./offer');
@@ -200,6 +201,42 @@ router.post("/events", (req, res) => {
     // send a text to customer
   }
 });
+
+
+
+
+/*
+ *
+ *
+ * sms handling
+ *
+ */
+
+router.post("/sms", (req, res) => {
+  const messageBody = req.body.Body;
+
+  const twiml = new MessagingResponse();
+
+  if (messageBody === 'accept') {
+    Offer.findOneAndUpdate({ driverCellNumber: req.body.From, state: 'OFFER_PLACED' }, { $set: { state: 'OFFER_ACCEPTED'} }, (err, doc) => {
+      if (err) return res.json({ success: false, error: err });
+      twiml.message('Thanks! We\'ll let you know when the order is confirmed.');
+      res.writeHead(200, { 'Content-Type': 'text/xml' });
+      res.end(twiml.toString());
+    })
+  }
+
+  if (messageBody === 'reject') {
+    Offer.findOneAndUpdate({ driverCellNumber: req.body.From, state: 'OFFER_PLACED' }, { $set: { state: 'OFFER_REJECTED'} }, (err, doc) => {
+      if (err) return res.json({ success: false, error: err });
+      twiml.message('Thanks for getting back to us. We\'ll let you know if another job comes up you might be interested in.')
+      res.writeHead(200, { 'Content-Type': 'text/xml' });
+      res.end(twiml.toString());
+    })
+  }
+
+})
+
 
 app.use("/api", router);
 
