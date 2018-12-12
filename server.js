@@ -199,12 +199,23 @@ router.post("/deleteOffers", (req, res) => {
 *
 */
 
-getDeliveryTimeEstimate = (shopAddress, customerAddress) => {
+getDeliveryTimeEstimate = (shopAddress, customerAddress, customerCellNumber) => {
   return googleMapsClient.distanceMatrix({
     origins: [shopAddress],
     destinations: [customerAddress],
   }).asPromise().then(response => {
-    return Promise.resolve(response.json.rows[0].elements[0].duration.text)
+    const secondsToDelivery = response.json.rows[0].elements[0].duration.value
+    const deliveryText = response.json.rows[0].elements[0].duration.text
+    setTimeout(() => {
+      twilioClient.messages
+        .create({
+          body: `Your flower delivery is about 5 minutes away!`,
+          from: twilioNumber,
+          to: customerCellNumber
+        })
+        .done();
+    }, secondsToDelivery * 1000 - (5 * 60 * 1000))
+    return Promise.resolve(deliveryText)
   }).catch(err => {
     console.log('error', err)
   })
@@ -278,7 +289,9 @@ router.post("/events", (req, res) => {
       }
 
       if (event.attrs.delivery.state === 'DELIVERY_PICKED_UP') {
-        getDeliveryTimeEstimate(event.attrs.delivery.shopAddress, event.attrs.delivery.customerAddress).then(duration => {
+        getDeliveryTimeEstimate(
+          event.attrs.delivery.shopAddress, event.attrs.delivery.customerAddress, event.attrs.delivery.customerCellNumber
+        ).then(duration => {
           twilioClient.messages
             .create({
               body: `Your flower delivery is on its way! It should arrive in ${duration}`,
