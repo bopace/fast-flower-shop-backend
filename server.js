@@ -193,11 +193,22 @@ router.post("/deleteOffers", (req, res) => {
 
 
 /*
- *
- *
- * event handling
- *
- */
+*
+*
+* event handling
+*
+*/
+
+getDeliveryTimeEstimate = (shopAddress, customerAddress) => {
+  return googleMapsClient.distanceMatrix({
+    origins: [shopAddress],
+    destinations: [customerAddress],
+  }).asPromise().then(response => {
+    return Promise.resolve(response.json.rows[0].elements[0].duration.text)
+  }).catch(err => {
+    console.log('error', err)
+  })
+}
 
 router.post("/events", (req, res) => {
   const { event } = req.body;
@@ -267,14 +278,16 @@ router.post("/events", (req, res) => {
       }
 
       if (event.attrs.delivery.state === 'DELIVERY_PICKED_UP') {
-        twilioClient.messages
-          .create({
-            body: `Your flower delivery is on its way! It should arrive in ${event.attrs.delivery.estimatedTime}`,
-            from: twilioNumber,
-            to: event.attrs.delivery.customerCellNumber
-          })
-          .done();
-        return res.json({ success: true });
+        getDeliveryTimeEstimate(event.attrs.delivery.shopAddress, event.attrs.delivery.customerAddress).then(duration => {
+          twilioClient.messages
+            .create({
+              body: `Your flower delivery is on its way! It should arrive in ${duration}`,
+              from: twilioNumber,
+              to: event.attrs.delivery.customerCellNumber
+            })
+            .done();
+          return res.json({ success: true });
+        })
       }
 
       if (event.attrs.delivery.state === 'DELIVERY_FIVE_MINUTES_AWAY') {
@@ -347,12 +360,6 @@ router.post("/sms", (req, res) => {
   }
 })
 
-getDeliveryTimeEstimate = (shopAddress, customerAddress) => {
-  googleMapsClient.distanceMatrix({}).asPromise()
-    .then(response => {
-      console.log('response', response.json.results)
-    })
-}
 
 
 app.use("/api", router);
