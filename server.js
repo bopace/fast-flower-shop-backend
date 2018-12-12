@@ -9,6 +9,7 @@ const MessagingResponse = require('twilio').twiml.MessagingResponse;
 const Driver = require('./driver');
 const Order = require('./order');
 const Offer = require('./offer');
+const Delivery = require('./delivery');
 const googleMapsClient = require('@google/maps').createClient({
   key: process.env.googleMapsApiKey,
   Promise: Promise
@@ -156,6 +157,13 @@ router.get('/getOffers/:id', (req, res) => {
   });
 });
 
+router.post("/deleteOffers", (req, res) => {
+  const { orderId } = req.body;
+  Offer.deleteMany({ orderId: orderId }, err => {
+    if (err) return res.send(err);
+    return res.json({ success: true });
+  });
+});
 
 
 /*
@@ -218,13 +226,13 @@ router.post("/events", (req, res) => {
 
   if (event.domain === 'delivery') {
     delete event.attrs.delivery._id
-    Offer.findOneAndUpdate({ id: event.attrs.delivery.id }, { $set: event.attrs.delivery }, { upsert: true, new: true }, (err, doc) => {
+    Delivery.findOneAndUpdate({ id: event.attrs.delivery.id }, { $set: event.attrs.delivery }, { upsert: true, new: true }, (err, doc) => {
       if (err) return res.json({ success: false, error: err });
 
       if (event.attrs.delivery.state === 'DELIVERY_PREPARED') {
         twilioClient.messages
           .create({
-            body: `The order is ready for pick up! Please head over to ${event.attrs.offer.shopName}.`,
+            body: `The order is ready for pick up! Please head over to ${event.attrs.delivery.shopName}.`,
             from: twilioNumber,
             to: event.attrs.delivery.driverCellNumber
           })
