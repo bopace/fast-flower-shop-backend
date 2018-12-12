@@ -166,6 +166,32 @@ router.post("/deleteOffers", (req, res) => {
 });
 
 
+
+/*
+ *
+ * DB ACCESS
+ *
+ * deliverys
+ *
+ */
+
+router.get('/getDelivery/:id', (req, res) => {
+  const orderId = req.params.id
+  Delivery.findOne({ orderId: orderId }, (err, data) => {
+    if (err) return res.json({ success: false, error: err });
+    return res.json({ success: true, data: data });
+  });
+});
+
+router.post("/deleteOffers", (req, res) => {
+  const { orderId } = req.body;
+  Offer.deleteMany({ orderId: orderId }, err => {
+    if (err) return res.send(err);
+    return res.json({ success: true });
+  });
+});
+
+
 /*
  *
  *
