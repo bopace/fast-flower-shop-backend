@@ -7,7 +7,7 @@ const DeliverySchema = new Schema(
     customerCellNumber: String,
     customerConfirmedDelivery: Boolean,
     driverCellNumber: String,
-    driverConfirmedDelviery: Boolean,
+    driverConfirmedDelivery: Boolean,
     driverName: String,
     id: String,
     orderId: String,

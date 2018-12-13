@@ -340,20 +340,8 @@ router.post("/events", (req, res) => {
             .done();
           return res.json({ success: true });
         }
-
-        if (event.attrs.delivery.state === 'DELIVERY_COMPLETED') {
-          twilioClient.messages
-            .create({
-              body: 'Congratulations on the successful delivery!',
-              from: twilioNumber,
-              to: event.attrs.delivery.driverCellNumber
-            })
-            .done();
-          return res.json({ success: true });
-        }
       })
     }
-
   }
 });
 
@@ -385,6 +373,28 @@ router.post("/sms", (req, res) => {
     Offer.findOneAndUpdate({ driverCellNumber: req.body.From, state: 'OFFER_PLACED' }, { $set: { state: 'OFFER_REJECTED'} }, (err, doc) => {
       if (err) return res.json({ success: false, error: err });
       twiml.message('Thanks for getting back to us. We\'ll let you know if another job comes up you might be interested in.')
+      res.writeHead(200, { 'Content-Type': 'text/xml' });
+      res.end(twiml.toString());
+    })
+  }
+
+  if (messageBody === 'arrived') {
+    Delivery.findOne({ driverCellNumber: req.body.From, driverConfirmedDelivery: false }, (err, data) => {
+      if (err) return res.json({ success: false, error: err });
+      twilioClient.messages
+        .create({
+          body: 'The delivery has arrived! Enjoy your flowers!',
+          from: twilioNumber,
+          to: data.customerCellNumber
+        })
+        .done();
+    })
+  }
+
+  if (messageBody === 'complete') {
+    Delivery.findOneAndUpdate({ driverCellNumber: req.body.From, driverConfirmedDelivery: false }, { $set: { driverConfirmedDelivery: true} }, (err, doc) => {
+      if (err) return res.json({ success: false, error: err });
+      twiml.message('Congrats on the successful delivery!')
       res.writeHead(200, { 'Content-Type': 'text/xml' });
       res.end(twiml.toString());
     })
