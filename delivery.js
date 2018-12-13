@@ -3,15 +3,17 @@ const Schema = mongoose.Schema;
 
 const DeliverySchema = new Schema(
   {
-    id: String,
-    state: String,
-    shopName: String,
-    shopAddress: String,
-    orderId: String,
-    driverName: String,
-    driverCellNumber: String,
-    customerCellNumber: String,
     customerAddress: String,
+    customerCellNumber: String,
+    customerConfirmedDelivery: Boolean,
+    driverCellNumber: String,
+    driverConfirmedDelviery: Boolean,
+    driverName: String,
+    id: String,
+    orderId: String,
+    shopAddress: String,
+    shopName: String,
+    state: String,
   },
   { timestamps: true }
 );

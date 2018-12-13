@@ -171,9 +171,16 @@ router.post("/deleteOffers", (req, res) => {
  *
  * DB ACCESS
  *
- * deliverys
+ * deliveries
  *
  */
+
+router.get('/getDeliveries', (req, res) => {
+  Delivery.find((err, data) => {
+    if (err) return res.json({ success: false, error: err });
+    return res.json({ success: true, data: data });
+  });
+});
 
 router.get('/getDelivery/:id', (req, res) => {
   const orderId = req.params.id
@@ -273,69 +280,80 @@ router.post("/events", (req, res) => {
   }
 
   if (event.domain === 'delivery') {
-    delete event.attrs.delivery._id
-    Delivery.findOneAndUpdate({ id: event.attrs.delivery.id }, { $set: event.attrs.delivery }, { upsert: true, new: true }, (err, doc) => {
-      if (err) return res.json({ success: false, error: err });
-
-      if (event.attrs.delivery.state === 'DELIVERY_PREPARED') {
-        twilioClient.messages
-          .create({
-            body: `The order is ready for pick up! Please head over to ${event.attrs.delivery.shopName}.`,
-            from: twilioNumber,
-            to: event.attrs.delivery.driverCellNumber
-          })
-          .done();
+    if (event.event === 'confirmed') {
+      const orderId = event.attrs.delivery.orderId
+      Delivery.findOneAndUpdate({ orderId: orderId }, { $set: {customerConfirmedDelivery: true} }, { new: true }, (err, doc) => {
+        if (err) return res.json({ success: false, error: err });
         return res.json({ success: true });
-      }
+      })
+    }
 
-      if (event.attrs.delivery.state === 'DELIVERY_PICKED_UP') {
-        getDeliveryTimeEstimate(
-          event.attrs.delivery.shopAddress, event.attrs.delivery.customerAddress, event.attrs.delivery.customerCellNumber
-        ).then(duration => {
+    else {
+      delete event.attrs.delivery._id
+      Delivery.findOneAndUpdate({ id: event.attrs.delivery.id }, { $set: event.attrs.delivery }, { upsert: true, new: true }, (err, doc) => {
+        if (err) return res.json({ success: false, error: err });
+
+        if (event.attrs.delivery.state === 'DELIVERY_PREPARED') {
           twilioClient.messages
             .create({
-              body: `Your flower delivery is on its way! It should arrive in ${duration}`,
+              body: `The order is ready for pick up! Please head over to ${event.attrs.delivery.shopName}.`,
+              from: twilioNumber,
+              to: event.attrs.delivery.driverCellNumber
+            })
+            .done();
+          return res.json({ success: true });
+        }
+
+        if (event.attrs.delivery.state === 'DELIVERY_PICKED_UP') {
+          getDeliveryTimeEstimate(
+            event.attrs.delivery.shopAddress, event.attrs.delivery.customerAddress, event.attrs.delivery.customerCellNumber
+          ).then(duration => {
+            twilioClient.messages
+              .create({
+                body: `Your flower delivery is on its way! It should arrive in ${duration}`,
+                from: twilioNumber,
+                to: event.attrs.delivery.customerCellNumber
+              })
+              .done();
+            return res.json({ success: true });
+          })
+        }
+
+        if (event.attrs.delivery.state === 'DELIVERY_FIVE_MINUTES_AWAY') {
+          twilioClient.messages
+            .create({
+              body: 'Your flower delivery is five minutes away!',
               from: twilioNumber,
               to: event.attrs.delivery.customerCellNumber
             })
             .done();
           return res.json({ success: true });
-        })
-      }
+        }
 
-      if (event.attrs.delivery.state === 'DELIVERY_FIVE_MINUTES_AWAY') {
-        twilioClient.messages
-          .create({
-            body: 'Your flower delivery is five minutes away!',
-            from: twilioNumber,
-            to: event.attrs.delivery.customerCellNumber
-          })
-          .done();
-        return res.json({ success: true });
-      }
+        if (event.attrs.delivery.state === 'DELIVERY_ARRIVED') {
+          twilioClient.messages
+            .create({
+              body: 'The delivery has arrived! Enjoy your flowers!',
+              from: twilioNumber,
+              to: event.attrs.delivery.customerCellNumber
+            })
+            .done();
+          return res.json({ success: true });
+        }
 
-      if (event.attrs.delivery.state === 'DELIVERY_ARRIVED') {
-        twilioClient.messages
-          .create({
-            body: 'The delivery has arrived! Enjoy your flowers!',
-            from: twilioNumber,
-            to: event.attrs.delivery.customerCellNumber
-          })
-          .done();
-        return res.json({ success: true });
-      }
+        if (event.attrs.delivery.state === 'DELIVERY_COMPLETED') {
+          twilioClient.messages
+            .create({
+              body: 'Congratulations on the successful delivery!',
+              from: twilioNumber,
+              to: event.attrs.delivery.driverCellNumber
+            })
+            .done();
+          return res.json({ success: true });
+        }
+      })
+    }
 
-      if (event.attrs.delivery.state === 'DELIVERY_COMPLETED') {
-        twilioClient.messages
-          .create({
-            body: 'Congratulations on the successful delivery!',
-            from: twilioNumber,
-            to: event.attrs.delivery.driverCellNumber
-          })
-          .done();
-        return res.json({ success: true });
-      }
-    })
   }
 });
 
