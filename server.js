@@ -296,7 +296,7 @@ router.post("/events", (req, res) => {
         if (event.attrs.delivery.state === 'DELIVERY_PREPARED') {
           twilioClient.messages
             .create({
-              body: `The order is ready for pick up! Please head over to ${event.attrs.delivery.shopName}.`,
+              body: `The order is ready for pick up! Please head over to ${event.attrs.delivery.shopName}. (text 'arrived' when you have arrived at the customer's location, and 'complete' when the delivery has been finalized.)`,
               from: twilioNumber,
               to: event.attrs.delivery.driverCellNumber
             })
